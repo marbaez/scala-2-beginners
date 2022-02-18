@@ -14,9 +14,9 @@ abstract class MyList[+A] {
   def isEmpty: Boolean
   def add[B >: A](e: B): MyList[B]
   def printElements: String
-  def map[B](transformer: Function1[A, B]): MyList[B]
-  def filter(predicate: Function1[A, Boolean]): MyList[A]
-  def flatMap[B](transformer: Function1[A, MyList[B]]): MyList[B]
+  def map[B](transformer: A => B): MyList[B]
+  def filter(predicate: A => Boolean): MyList[A]
+  def flatMap[B](transformer: A => MyList[B]): MyList[B]
 
   def ++[B >: A](list: MyList[B]): MyList[B]
 
@@ -29,9 +29,9 @@ case object Empty extends MyList[Nothing] {
   def isEmpty: Boolean = true
   def add[B >: Nothing](e: B): MyList[B] = new Cons(e, Empty)
   def printElements: String = ""
-  def map[B](transformer: Function1[Nothing, B]): MyList[B] = Empty
-  def filter(predicate: Function1[Nothing, Boolean]): MyList[Nothing] = Empty
-  def flatMap[B](transformer: Function1[Nothing, MyList[B]]): MyList[B] = Empty
+  def map[B](transformer: Nothing => B): MyList[B] = Empty
+  def filter(predicate: Nothing => Boolean): MyList[Nothing] = Empty
+  def flatMap[B](transformer: Nothing => MyList[B]): MyList[B] = Empty
   def ++[B >: Nothing](list: MyList[B]): MyList[B] = list
 }
 case class Cons[+A](val h: A,val t: MyList[A]) extends MyList[A] {
@@ -42,12 +42,12 @@ case class Cons[+A](val h: A,val t: MyList[A]) extends MyList[A] {
   override def printElements: String = if (t.isEmpty) s"$h" else s"$h, ${t.printElements}"
   def ++[B >: A](list: MyList[B]): MyList[B] = Cons[B](head, tail ++ list)
 
-  def map[B](transformer: Function1[A, B]): MyList[B] =
+  def map[B](transformer: A => B): MyList[B] =
     new Cons[B](transformer(this.head), this.tail.map(transformer))
-  def filter(predicate: Function1[A, Boolean]): MyList[A] =
+  def filter(predicate: A => Boolean): MyList[A] =
     if (predicate(this.head)) Cons[A](this.head, this.tail.filter(predicate))
     else this.tail.filter(predicate)
-  def flatMap[B](transformer: Function1[A, MyList[B]]): MyList[B] =
+  def flatMap[B](transformer: A => MyList[B]): MyList[B] =
     transformer(head) ++ tail.flatMap(transformer)
 }
 
