@@ -1,5 +1,7 @@
 package exercises
 
+import lectures.part2oop.Generics.MyList
+
 abstract class MyList[+A] {
   /*
   head -> first element of the list
@@ -21,6 +23,12 @@ abstract class MyList[+A] {
   def ++[B >: A](list: MyList[B]): MyList[B]
 
   override def toString: String = s"[${printElements}]"
+
+  // HOFs
+  def foreach(a:A => Unit): Unit
+  def sort(f: (A,A) => Int): MyList[A]
+  def zipWith[B, C](l: MyList[B], f: (A, B) => C): MyList[C]
+  def fold[B](c: B)(operator: (B, A) => B): B
 }
 
 case object Empty extends MyList[Nothing] {
@@ -33,6 +41,13 @@ case object Empty extends MyList[Nothing] {
   def filter(predicate: Nothing => Boolean): MyList[Nothing] = Empty
   def flatMap[B](transformer: Nothing => MyList[B]): MyList[B] = Empty
   def ++[B >: Nothing](list: MyList[B]): MyList[B] = list
+
+  // HOFs
+  override def foreach(a: Nothing => Unit): Unit = ()
+  override def sort(f: (Nothing, Nothing) => Int): MyList[Nothing] = Empty
+  override def zipWith[B, C](l: MyList[B], f: (Nothing, B) => C): MyList[C] = Empty
+
+  override def fold[B](c: B)(operator: (B, Nothing) => B): B = c
 }
 case class Cons[+A](val h: A,val t: MyList[A]) extends MyList[A] {
   def head: A = h
@@ -49,6 +64,29 @@ case class Cons[+A](val h: A,val t: MyList[A]) extends MyList[A] {
     else this.tail.filter(predicate)
   def flatMap[B](transformer: A => MyList[B]): MyList[B] =
     transformer(head) ++ tail.flatMap(transformer)
+
+  // HOFs
+  override def foreach(f: A => Unit): Unit = {
+    f(head)
+    tail.foreach(f)
+  }
+
+  override def sort(f: (A, A) => Int): MyList[A] = {
+    def insert(x: A, sortedList: MyList[A]): MyList[A] = {
+      if (sortedList.isEmpty) new Cons[A](x, Empty)
+      else if (f(x, sortedList.head) <= 0) new Cons[A](x, sortedList)
+      else new Cons[A](sortedList.head, insert(x, sortedList.tail))
+    }
+    def sortedTail = t.sort(f)
+    insert(h, sortedTail)
+  }
+
+  override def zipWith[B, C](l: MyList[B], f: (A, B) => C): MyList[C] =
+    if (!isEmpty && !l.isEmpty) new Cons[C](f(head, l.head), tail.zipWith(l.tail, f))
+    else Empty
+
+  override def fold[B](c: B)(operator: (B, A) => B): B =
+    operator(tail.fold(c)(operator), head)
 }
 
 /*
@@ -64,9 +102,12 @@ case class Cons[+A](val h: A,val t: MyList[A]) extends MyList[A] {
  */
 
 object ListTest extends App {
-  val listIntegers: MyList[Int] = Cons(1, Cons(2, Cons(3, Empty)))
+  val listIntegers: MyList[Int] = Cons(99, Cons(55, Cons(77, Cons(66, Cons(77, Empty)))))
   val listStrings: MyList[String] = Cons[String]("Hello", Cons[String]("Scala", Empty))
   println(listIntegers.map((a: Int) => a * 2))
   println(listIntegers.filter((t: Int) => t > 2))
   print(listIntegers.flatMap((a: Int) => Cons[Int](a, Cons[Int](a * 2, Empty))))
+  listIntegers.foreach(println)
+
+  println(listIntegers.sort(_ - _))
 }
